@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional
 
 from app.dependencies.database import get_db
 from app.dependencies.pagination import PaginationParams
@@ -8,6 +9,7 @@ from app.schemas.organization.department import DepartmentCreate, DepartmentUpda
 from app.services.organization.department import department_service
 from app.services.common.response import success_response
 from app.services.common.pagination import paginate_query
+from app.models.organization.department import Department
 from app.core.logger import logger
 from app.core.constants import (
     MSG_DEPT_RETRIEVED,
@@ -21,11 +23,32 @@ router = APIRouter(prefix="/departments", tags=["Departments"])
 
 @router.get("", status_code=status.HTTP_200_OK)
 def read_departments(
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "name",
+    sort_order: str = "asc",
     params: PaginationParams = Depends(PaginationParams),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Retrieving departments (page: {params.page}, limit: {params.limit})")
+    logger.info(f"Retrieving departments (search: '{search}', sort_by: '{sort_by}', order: '{sort_order}')")
     query = department_service.get_query(db)
+    
+    # Search
+    if search:
+        query = query.filter(
+            Department.name.ilike(f"%{search}%") | 
+            Department.code.ilike(f"%{search}%")
+        )
+        
+    # Sorting
+    if sort_by and hasattr(Department, sort_by):
+        col = getattr(Department, sort_by)
+        if sort_order.lower() == "desc":
+            query = query.order_by(col.desc())
+        else:
+            query = query.order_by(col.asc())
+    else:
+        query = query.order_by(Department.name.asc())
+        
     paginated_data = paginate_query(query, params.page, params.limit)
     paginated_data["items"] = [
         DepartmentResponse.model_validate(item) for item in paginated_data["items"]

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional
 
 from app.dependencies.database import get_db
 from app.dependencies.pagination import PaginationParams
@@ -8,6 +9,7 @@ from app.schemas.organization.employee import EmployeeCreate, EmployeeUpdate, Em
 from app.services.organization.employee import employee_service
 from app.services.common.response import success_response
 from app.services.common.pagination import paginate_query
+from app.models.organization.user import User
 from app.core.logger import logger
 from app.core.constants import (
     MSG_EMP_RETRIEVED,
@@ -21,11 +23,40 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
 
 @router.get("", status_code=status.HTTP_200_OK)
 def read_employees(
+    search: Optional[str] = None,
+    department_id: Optional[UUID] = None,
+    role_id: Optional[UUID] = None,
+    sort_by: Optional[str] = "full_name",
+    sort_order: str = "asc",
     params: PaginationParams = Depends(PaginationParams),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Retrieving employees (page: {params.page}, limit: {params.limit})")
+    logger.info(f"Retrieving employees (search: '{search}', dept: {department_id}, role: {role_id})")
     query = employee_service.get_query(db)
+    
+    # Filtering
+    if department_id:
+        query = query.filter(User.department_id == department_id)
+    if role_id:
+        query = query.filter(User.role_id == role_id)
+        
+    # Search
+    if search:
+        query = query.filter(
+            User.full_name.ilike(f"%{search}%") | 
+            User.email.ilike(f"%{search}%")
+        )
+        
+    # Sorting
+    if sort_by and hasattr(User, sort_by):
+        col = getattr(User, sort_by)
+        if sort_order.lower() == "desc":
+            query = query.order_by(col.desc())
+        else:
+            query = query.order_by(col.asc())
+    else:
+        query = query.order_by(User.full_name.asc())
+        
     paginated_data = paginate_query(query, params.page, params.limit)
     paginated_data["items"] = [
         EmployeeResponse.model_validate(item) for item in paginated_data["items"]

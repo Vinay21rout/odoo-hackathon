@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional
 
 from app.dependencies.database import get_db
 from app.dependencies.pagination import PaginationParams
@@ -8,6 +9,7 @@ from app.schemas.reports.report import ReportCreate, ReportUpdate, ReportRespons
 from app.services.reports.report_service import report_service
 from app.services.common.response import success_response
 from app.services.common.pagination import paginate_query
+from app.models.reports.report import SavedReport
 from app.core.logger import logger
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -20,11 +22,37 @@ def get_dynamic_esg_report(db: Session = Depends(get_db)):
 
 @router.get("", status_code=status.HTTP_200_OK)
 def read_saved_reports(
+    report_type: Optional[str] = None,
+    user_id: Optional[UUID] = None,
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "created_at",
+    sort_order: str = "desc",
     params: PaginationParams = Depends(PaginationParams),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Retrieving saved reports (page: {params.page}, limit: {params.limit})")
+    logger.info(f"Retrieving saved reports (type: '{report_type}', user: {user_id}, search: '{search}')")
     query = report_service.get_query(db)
+    
+    # Filtering
+    if report_type:
+        query = query.filter(SavedReport.report_type == report_type)
+    if user_id:
+        query = query.filter(SavedReport.user_id == user_id)
+        
+    # Search
+    if search:
+        query = query.filter(SavedReport.title.ilike(f"%{search}%"))
+        
+    # Sorting
+    if sort_by and hasattr(SavedReport, sort_by):
+        col = getattr(SavedReport, sort_by)
+        if sort_order.lower() == "asc":
+            query = query.order_by(col.asc())
+        else:
+            query = query.order_by(col.desc())
+    else:
+        query = query.order_by(SavedReport.created_at.desc())
+        
     paginated_data = paginate_query(query, params.page, params.limit)
     paginated_data["items"] = [
         ReportResponse.model_validate(item) for item in paginated_data["items"]

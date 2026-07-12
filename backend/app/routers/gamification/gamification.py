@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional
 
 from app.dependencies.database import get_db
 from app.dependencies.pagination import PaginationParams
@@ -18,6 +19,8 @@ from app.services.gamification.gamification_service import (
 )
 from app.services.common.response import success_response
 from app.services.common.pagination import paginate_query
+from app.models.gamification.challenge import Challenge
+from app.models.gamification.badge import Badge
 from app.core.logger import logger
 
 router = APIRouter(prefix="/gamification", tags=["Gamification"])
@@ -26,11 +29,32 @@ router = APIRouter(prefix="/gamification", tags=["Gamification"])
 
 @router.get("/challenges", status_code=status.HTTP_200_OK)
 def read_challenges(
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "start_date",
+    sort_order: str = "asc",
     params: PaginationParams = Depends(PaginationParams),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Retrieving challenges (page: {params.page}, limit: {params.limit})")
+    logger.info(f"Retrieving challenges (search: '{search}', sort_by: '{sort_by}', order: '{sort_order}')")
     query = challenge_service.get_query(db)
+    
+    # Search
+    if search:
+        query = query.filter(
+            Challenge.title.ilike(f"%{search}%") | 
+            Challenge.description.ilike(f"%{search}%")
+        )
+        
+    # Sorting
+    if sort_by and hasattr(Challenge, sort_by):
+        col = getattr(Challenge, sort_by)
+        if sort_order.lower() == "desc":
+            query = query.order_by(col.desc())
+        else:
+            query = query.order_by(col.asc())
+    else:
+        query = query.order_by(Challenge.start_date.asc())
+        
     paginated_data = paginate_query(query, params.page, params.limit)
     paginated_data["items"] = [
         ChallengeResponse.model_validate(item) for item in paginated_data["items"]
@@ -47,11 +71,32 @@ def create_challenge(obj_in: ChallengeCreate, db: Session = Depends(get_db)):
 
 @router.get("/badges", status_code=status.HTTP_200_OK)
 def read_badges(
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "name",
+    sort_order: str = "asc",
     params: PaginationParams = Depends(PaginationParams),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Retrieving badges (page: {params.page}, limit: {params.limit})")
+    logger.info(f"Retrieving badges (search: '{search}', sort_by: '{sort_by}', order: '{sort_order}')")
     query = badge_service.get_query(db)
+    
+    # Search
+    if search:
+        query = query.filter(
+            Badge.name.ilike(f"%{search}%") | 
+            Badge.description.ilike(f"%{search}%")
+        )
+        
+    # Sorting
+    if sort_by and hasattr(Badge, sort_by):
+        col = getattr(Badge, sort_by)
+        if sort_order.lower() == "desc":
+            query = query.order_by(col.desc())
+        else:
+            query = query.order_by(col.asc())
+    else:
+        query = query.order_by(Badge.name.asc())
+        
     paginated_data = paginate_query(query, params.page, params.limit)
     paginated_data["items"] = [
         BadgeResponse.model_validate(item) for item in paginated_data["items"]

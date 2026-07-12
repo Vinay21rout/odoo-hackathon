@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional
 
 from app.dependencies.database import get_db
 from app.dependencies.pagination import PaginationParams
@@ -8,17 +9,44 @@ from app.schemas.social.metric import SocialCreate, SocialUpdate, SocialResponse
 from app.services.social.metric import social_service
 from app.services.common.response import success_response
 from app.services.common.pagination import paginate_query
+from app.models.social.metric import SocialRecord
 from app.core.logger import logger
 
 router = APIRouter(prefix="/social", tags=["Social"])
 
 @router.get("", status_code=status.HTTP_200_OK)
 def read_social_records(
+    metric_type: Optional[str] = None,
+    user_id: Optional[UUID] = None,
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "recorded_date",
+    sort_order: str = "desc",
     params: PaginationParams = Depends(PaginationParams),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Retrieving social records (page: {params.page}, limit: {params.limit})")
+    logger.info(f"Retrieving social records (type: '{metric_type}', user: {user_id}, search: '{search}')")
     query = social_service.get_query(db)
+    
+    # Filtering
+    if metric_type:
+        query = query.filter(SocialRecord.metric_type == metric_type)
+    if user_id:
+        query = query.filter(SocialRecord.user_id == user_id)
+        
+    # Search
+    if search:
+        query = query.filter(SocialRecord.description.ilike(f"%{search}%"))
+        
+    # Sorting
+    if sort_by and hasattr(SocialRecord, sort_by):
+        col = getattr(SocialRecord, sort_by)
+        if sort_order.lower() == "asc":
+            query = query.order_by(col.asc())
+        else:
+            query = query.order_by(col.desc())
+    else:
+        query = query.order_by(SocialRecord.recorded_date.desc())
+        
     paginated_data = paginate_query(query, params.page, params.limit)
     paginated_data["items"] = [
         SocialResponse.model_validate(item) for item in paginated_data["items"]
