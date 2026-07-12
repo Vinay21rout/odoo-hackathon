@@ -18,3 +18,7 @@ class Badge(BaseModel):
         String(255),
         nullable=True
     )
+    points_target: Mapped[int] = mapped_column(
+        default=500,
+        nullable=False
+    )

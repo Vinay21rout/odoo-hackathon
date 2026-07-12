@@ -12,49 +12,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.1) 0%, rgba(11, 15, 25, 1) 90%);
+            background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.05) 0%, #f8fafc 90%);
         }
         .login-card {
             width: 100%;
             max-width: 440px;
-            background: rgba(22, 29, 48, 0.7);
-            backdrop-filter: blur(16px);
+            background: #ffffff;
             border: 1px solid var(--surface-border);
             border-radius: 16px;
             padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
         }
         .login-logo {
             text-align: center;
             margin-bottom: 32px;
         }
-        .login-logo i {
-            font-size: 40px;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
-        }
-        .login-logo h1 {
-            font-size: 24px;
-            font-weight: 700;
-        }
         .login-logo p {
             color: var(--text-secondary);
             font-size: 14px;
             margin-top: 6px;
-        }
-        .dev-badge {
-            background-color: rgba(245, 158, 11, 0.1);
-            color: var(--warning-color);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            padding: 12px;
-            border-radius: var(--border-radius);
-            font-size: 13px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
     </style>
 </head>
@@ -62,53 +38,81 @@
     <div class="login-container">
         <div class="login-card">
             <div class="login-logo">
-                <i class="fas fa-globe-americas"></i>
-                <h1>EcoSphere AI</h1>
+                <div class="logo-brand">
+                    <span class="eco">Ec</span><span class="logo-o"><i class="fas fa-globe-americas globe"></i><i class="fas fa-leaf leaf"></i></span><span class="sphere">Sphere</span><span class="ai-badge">AI</span>
+                </div>
                 <p>Enterprise ESG Intelligence Platform</p>
             </div>
             
-            <div class="dev-badge">
-                <i class="fas fa-tools"></i>
-                <div>
-                    <strong>Developer Shortcut Enable:</strong> Authenticate locally using a Mock UID without configuring Firebase admin.
-                </div>
-            </div>
-
-            <form id="login-form" onsubmit="handleLoginSubmit(event)">
+            <form id="login-form">
                 <div class="form-group">
-                    <label for="uid">Firebase UID (Mock Token)</label>
-                    <input type="text" id="uid" class="form-control" placeholder="e.g. admin-uid, employee-uid" required value="admin-uid">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-control" placeholder="user@ecosphere.ai" required>
                 </div>
                 <div class="form-group">
-                    <label for="email">User Email</label>
-                    <input type="email" id="email" class="form-control" placeholder="admin@ecosphere.ai" required value="admin@ecosphere.ai">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
+                <button type="submit" class="btn-primary" id="email-signin-btn" style="width: 100%; justify-content: center; margin-top: 12px;">
                     <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                <button type="button" class="btn-secondary" id="email-signup-btn" style="width: 100%; justify-content: center; margin-top: 12px;">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+                
+                <div style="text-align: center; margin: 24px 0; color: var(--text-secondary); position: relative;">
+                    <hr style="border: 0; border-top: 1px solid var(--surface-border); position: absolute; width: 100%; top: 50%;">
+                    <span style="background: #ffffff; padding: 0 10px; position: relative;">OR</span>
+                </div>
+
+                <button type="button" class="btn-secondary" id="google-signin-btn" style="width: 100%; justify-content: center; background-color: #fff; color: #334155; border: 1px solid #cbd5e1; font-weight: 500;">
+                    <img src="data:image/png;base64,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" alt="Google" style="width: 18px; margin-right: 8px;">
+                    Sign in with Google
+                </button>
+
+                <div style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-secondary);">
+                    <span>- Or Demo Mode Evaluation -</span>
+                </div>
+                <button type="button" class="btn-primary" id="demo-login-btn" style="width: 100%; justify-content: center; margin-top: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: #fff;">
+                    <i class="fa fa-key" style="margin-right: 8px;"></i> Sign In as Administrator (Demo)
                 </button>
             </form>
         </div>
     </div>
 
     <script src="../assets/layout.js"></script>
-    <script>
-        function handleLoginSubmit(event) {
-            event.preventDefault();
-            const uid = document.getElementById("uid").value.trim();
-            const email = document.getElementById("email").value.trim();
-            
-            if (!uid || !email) {
-                alert("Please fill in both fields.");
-                return;
-            }
-            
-            // Standardize mock token setting
-            const token = `mock-${uid}`;
-            localStorage.setItem("token", token);
-            localStorage.setItem("user_email", email);
-            
+    <script type="module">
+        import { handleGoogleSignIn, handleEmailSignIn, handleEmailSignUp } from '../assets/js/auth.js';
+        
+        document.getElementById('demo-login-btn').addEventListener('click', () => {
+            localStorage.setItem("token", "mock-admin-uid");
+            localStorage.setItem("user_email", "admin@ecosphere.ai");
+            localStorage.setItem("user_role", "admin");
             window.location.href = "dashboard.html";
-        }
+        });
+
+        document.getElementById('google-signin-btn').addEventListener('click', () => {
+            handleGoogleSignIn();
+        });
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (email && password) {
+                handleEmailSignIn(email, password);
+            }
+        });
+
+        document.getElementById('email-signup-btn').addEventListener('click', () => {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (email && password) {
+                handleEmailSignUp(email, password);
+            } else {
+                alert("Please enter email and password to sign up.");
+            }
+        });
         
         // Redirect if already authenticated
         if (localStorage.getItem("token")) {

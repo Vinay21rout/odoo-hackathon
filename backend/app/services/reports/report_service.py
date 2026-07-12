@@ -35,8 +35,13 @@ class CRUDReport(CRUDBase[SavedReport]):
             .all()
         )
         environmental_summary = {
-            metric_type: total for metric_type, total in env_breakdown
+            "carbon": 0.0,
+            "energy": 0.0,
+            "water": 0.0,
+            "waste": 0.0
         }
+        for metric_type, total in env_breakdown:
+            environmental_summary[metric_type] = total or 0.0
 
         # Social aggregation (training hours, incidents, etc.)
         social_breakdown = (
@@ -46,8 +51,13 @@ class CRUDReport(CRUDBase[SavedReport]):
             .all()
         )
         social_summary = {
-            metric_type: total for metric_type, total in social_breakdown
+            "training_hours": 0.0,
+            "health_safety_incidents": 0.0,
+            "diversity_ratio": 0.0,
+            "community_hours": 0.0
         }
+        for metric_type, total in social_breakdown:
+            social_summary[metric_type] = total or 0.0
 
         # Governance aggregation (whistleblower reports, etc.)
         gov_breakdown = (
@@ -57,8 +67,12 @@ class CRUDReport(CRUDBase[SavedReport]):
             .all()
         )
         governance_summary = {
-            metric_type: count for metric_type, count in gov_breakdown
+            "whistleblower_reports": 0,
+            "policy_violations": 0,
+            "board_diversity": 0
         }
+        for metric_type, count in gov_breakdown:
+            governance_summary[metric_type] = count or 0
 
         return {
             "environmental": environmental_summary,

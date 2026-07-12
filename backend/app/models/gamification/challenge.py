@@ -19,6 +19,11 @@ class Challenge(BaseModel):
         default=10,
         nullable=False
     )
+    category: Mapped[str] = mapped_column(
+        String(50),
+        default="environmental",
+        nullable=False
+    )
     start_date: Mapped[date] = mapped_column(
         Date,
         index=True,

@@ -62,6 +62,48 @@ class CRUDUserChallenge(CRUDBase[UserChallenge]):
         db.commit()
         db.refresh(uc)
         logger.info(f"User challenge progress {user_challenge_id} completed successfully")
+        
+        # Trigger notification
+        from app.services.organization.notification import notification_service
+        notification_service.trigger_notification(
+            db,
+            user_id=uc.user_id,
+            message=f"You successfully completed the challenge '{uc.challenge.title}'! (+{uc.challenge.points_reward} XP)",
+            notification_type="challenge"
+        )
+        
+        # Check settings for badge auto-award
+        from app.services.organization.settings import settings_service
+        settings_obj = settings_service.get_active_settings(db)
+        if settings_obj.badge_auto_award:
+            leaderboard = get_leaderboard(db)
+            user_points = 0
+            for entry in leaderboard:
+                if entry.user_id == uc.user_id:
+                    user_points = entry.total_points
+                    break
+            
+            from app.models.gamification.badge import Badge
+            from app.models.gamification.user_badge import UserBadge
+            badges = db.query(Badge).filter(Badge.is_active == True).all()
+            earned_badge_ids = {ub.badge_id for ub in db.query(UserBadge).filter(
+                UserBadge.user_id == uc.user_id,
+                UserBadge.is_active == True
+            ).all()}
+            
+            for badge in badges:
+                if badge.id not in earned_badge_ids and user_points >= badge.points_target:
+                    user_badge = UserBadge(user_id=uc.user_id, badge_id=badge.id)
+                    db.add(user_badge)
+                    notification_service.trigger_notification(
+                        db,
+                        user_id=uc.user_id,
+                        message=f"Congratulations! You unlocked the '{badge.name}' badge!",
+                        notification_type="badge"
+                    )
+            db.commit()
+            db.refresh(uc)
+            
         return uc
 
 class CRUDUserBadge(CRUDBase[UserBadge]):
@@ -101,7 +143,8 @@ def get_leaderboard(db: Session) -> List[LeaderboardEntry]:
         db.query(
             User.id.label("user_id"),
             User.full_name.label("full_name"),
-            func.coalesce(func.sum(Challenge.points_reward), 0).label("points")
+            User.email.label("email"),
+            func.coalesce(func.sum(Challenge.points_reward), 0).label("total_points")
         )
         .outerjoin(
             UserChallenge,
@@ -112,12 +155,12 @@ def get_leaderboard(db: Session) -> List[LeaderboardEntry]:
             (Challenge.id == UserChallenge.challenge_id) & (Challenge.is_active == True)
         )
         .filter(User.is_active == True)
-        .group_by(User.id, User.full_name)
+        .group_by(User.id, User.full_name, User.email)
         .order_by(func.coalesce(func.sum(Challenge.points_reward), 0).desc())
         .all()
     )
     
     return [
-        LeaderboardEntry(user_id=row.user_id, full_name=row.full_name, points=row.points)
+        LeaderboardEntry(user_id=row.user_id, full_name=row.full_name, email=row.email, total_points=row.total_points)
         for row in query
     ]

@@ -98,10 +98,10 @@
             <div class="content-body">
                 <div class="gamification-grid">
                     <!-- Challenges Section -->
-                    <div>
+                    <div class="glass-panel">
                         <div class="panel-header">
                             <h3 class="panel-title">Active ESG Challenges</h3>
-                            <button class="btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openCreateChallengeModal()">
+                            <button class="btn-primary admin-only" style="padding: 8px 16px; font-size: 14px;" onclick="openCreateChallengeModal()">
                                 <i class="fas fa-plus"></i> New
                             </button>
                         </div>
@@ -138,12 +138,26 @@
                 <div class="glass-panel">
                     <div class="panel-header">
                         <h3 class="panel-title">Corporate Badge Collections</h3>
-                        <button class="btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openCreateBadgeModal()">
+                        <button class="btn-primary admin-only" style="padding: 8px 16px; font-size: 14px;" onclick="openCreateBadgeModal()">
                             <i class="fas fa-plus"></i> Create Badge
                         </button>
                     </div>
                     <div class="badge-showcase" id="badges-showcase" style="margin-top: 20px;">
                         <p style="color: var(--text-secondary);">Loading badges collection...</p>
+                    </div>
+                </div>
+
+                <!-- Rewards Section -->
+                <div class="glass-panel" style="margin-top: 32px;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Enterprise Sustainability Store</h3>
+                        <div style="font-size: 14px; font-weight: 600; color: var(--primary-color);">
+                            Available Balance: <span id="reward-point-balance" style="font-size: 18px; font-weight: 700; color: #10b981;">0</span> XP
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Redeem your hard-earned ESG points for physical corporate awards. Points spent here will deduct from your redeemable balance without impacting your leaderboard standing.</div>
+                    <div class="badge-showcase" id="rewards-showcase">
+                        <p style="color: var(--text-secondary);">Loading rewards catalog...</p>
                     </div>
                 </div>
             </div>
@@ -237,6 +251,7 @@
             loadChallenges();
             loadLeaderboard();
             loadBadges();
+            loadRewards();
         }
 
         async function loadChallenges() {
@@ -431,6 +446,89 @@
                 }
             } catch (err) {
                 showToast(err.message || "Already joined or failed.", "error");
+            }
+        }
+
+        async function loadRewards() {
+            try {
+                const res = await apiCall("/gamification/rewards?limit=20");
+                const userEmail = localStorage.getItem("user_email") || "admin@ecosphere.ai";
+                let user_id = "";
+                let total_points = 0;
+                
+                const leaderboardRes = await apiCall("/gamification/leaderboard?silent=true");
+                if (leaderboardRes && leaderboardRes.success) {
+                    const matched = leaderboardRes.data.find(u => u.email === userEmail);
+                    if (matched) {
+                        user_id = matched.user_id;
+                        total_points = matched.total_points;
+                    }
+                }
+                
+                if (res && res.success) {
+                    document.getElementById("reward-point-balance").textContent = total_points;
+                    populateRewards(res.data.items, user_id);
+                }
+            } catch (err) {
+                console.error("Failed to load rewards store.", err);
+            }
+        }
+
+        function populateRewards(items, user_id) {
+            const showcase = document.getElementById("rewards-showcase");
+            showcase.innerHTML = "";
+            
+            if (items.length === 0) {
+                showcase.innerHTML = `<p style="color: var(--text-secondary);">No reward items configured yet.</p>`;
+                return;
+            }
+
+            items.forEach(rw => {
+                const div = document.createElement("div");
+                div.className = "badge-box";
+                div.style.display = "flex";
+                div.style.flexDirection = "column";
+                div.style.justifyContent = "space-between";
+                div.style.alignItems = "center";
+                div.style.padding = "20px";
+                div.style.height = "100%";
+                
+                div.innerHTML = `
+                    <div>
+                        <i class="fas fa-gift" style="color: #10b981; font-size: 28px; margin-bottom: 8px;"></i>
+                        <h5 style="margin-bottom: 6px;">${rw.name}</h5>
+                        <p style="font-size: 11px; margin-bottom: 12px;">${rw.description || ""}</p>
+                    </div>
+                    <div style="width: 100%;">
+                        <div style="font-size: 13px; font-weight: 700; color: #10b981; margin-bottom: 4px;">${rw.points_required} XP</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">Stock: ${rw.stock} left</div>
+                        <button class="btn-primary w-100" style="padding: 6px; font-size: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;" onclick="redeemReward('${rw.id}', '${user_id}')" ${rw.stock === 0 ? "disabled" : ""}>
+                            ${rw.stock === 0 ? "Out of Stock" : "Redeem Now"}
+                        </button>
+                    </div>
+                `;
+                showcase.appendChild(div);
+            });
+        }
+
+        async function redeemReward(reward_id, user_id) {
+            if (!user_id || user_id === "null") {
+                showToast("Please create an employee profile first to redeem rewards.", "error");
+                return;
+            }
+            if (!confirm("Are you sure you want to redeem this reward?")) return;
+            
+            try {
+                const res = await apiCall("/gamification/rewards/redeem", {
+                    method: "POST",
+                    body: JSON.stringify({ user_id, reward_id })
+                });
+                if (res && res.success) {
+                    showToast("Reward redeemed successfully! Notification triggered.");
+                    await loadRewards();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to redeem reward.", "error");
             }
         }
     </script>

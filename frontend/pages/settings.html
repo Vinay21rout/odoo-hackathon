@@ -26,7 +26,21 @@
                                 Adjust this value if your FastAPI backend runs on a custom port or domain. Relies on local storage state.
                             </p>
                         </div>
-                        <button type="submit" class="btn-primary">
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label for="firebase-config-input">Firebase Web Client Configuration (JSON)</label>
+                            <textarea id="firebase-config-input" class="form-control" rows="8" style="font-family: monospace; font-size: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--surface-border); border-radius: var(--border-radius); color: #fff; padding: 10px; width: 100%;" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">
+                                Paste your web client config object here. If left blank, the application will fallback to the default configured project.
+                            </p>
+                        </div>
+                        <button type="submit" class="btn-primary" style="margin-top: 10px;">
                             <i class="fas fa-save"></i> Save Configuration
                         </button>
                     </form>
@@ -45,21 +59,142 @@
                         </button>
                     </div>
                 </div>
+
+                <div class="glass-panel" style="max-width: 600px; margin-bottom: 24px;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">System-wide ESG Configs & Business Rules</h3>
+                    </div>
+                    <form id="system-settings-form" onsubmit="saveSystemSettings(event)" style="margin-top: 16px; display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Auto Emission Calculation</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Automatically calculate emissions using EPA factor conversion.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="auto-emission">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Evidence Requirement</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Requires document/proof upload for CSR approvals.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="evidence-required">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Badge Auto-Award</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Assign badges automatically when target points are acquired.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="badge-auto">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">In-App Notifications</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Receive notification cards inside the header bell.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="in-app-notify">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Email Notifications</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Forward system event notifications to employee email.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="email-notify">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary" style="align-self: flex-start; margin-top: 10px;">
+                            <i class="fas fa-save"></i> Save Rules
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="../assets/layout.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("api-url").value = API_BASE_URL;
+            const savedFirebase = localStorage.getItem("firebase_config");
+            if (savedFirebase) {
+                try {
+                    document.getElementById("firebase-config-input").value = JSON.stringify(JSON.parse(savedFirebase), null, 2);
+                } catch (e) {
+                    document.getElementById("firebase-config-input").value = savedFirebase;
+                }
+            }
+            await loadSystemSettings();
         });
+
+        async function loadSystemSettings() {
+            try {
+                const response = await apiCall("/settings");
+                if (response && response.data) {
+                    const d = response.data;
+                    document.getElementById("auto-emission").checked = d.auto_emission_calculation;
+                    document.getElementById("evidence-required").checked = d.evidence_requirement;
+                    document.getElementById("badge-auto").checked = d.badge_auto_award;
+                    document.getElementById("in-app-notify").checked = d.in_app_notifications;
+                    document.getElementById("email-notify").checked = d.email_notifications;
+                }
+            } catch (err) {
+                console.error("Failed to load settings from server:", err);
+            }
+        }
+
+        async function saveSystemSettings(event) {
+            event.preventDefault();
+            const payload = {
+                auto_emission_calculation: document.getElementById("auto-emission").checked,
+                evidence_requirement: document.getElementById("evidence-required").checked,
+                badge_auto_award: document.getElementById("badge-auto").checked,
+                in_app_notifications: document.getElementById("in-app-notify").checked,
+                email_notifications: document.getElementById("email-notify").checked
+            };
+            
+            try {
+                await apiCall("/settings", {
+                    method: "PUT",
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                showToast("Failed to save system rules: " + err.message, "error");
+            }
+        }
 
         function saveApiSettings(event) {
             event.preventDefault();
             const url = document.getElementById("api-url").value.trim();
             localStorage.setItem("api_base_url", url);
-            showToast("API settings saved! Reloading application...");
+
+            const fbConfig = document.getElementById("firebase-config-input").value.trim();
+            if (fbConfig) {
+                try {
+                    JSON.parse(fbConfig);
+                    localStorage.setItem("firebase_config", fbConfig);
+                } catch (e) {
+                    showToast("Invalid JSON block format for Firebase Web Configuration!", "error");
+                    return;
+                }
+            } else {
+                localStorage.removeItem("firebase_config");
+            }
+
+            showToast("API & Firebase settings saved! Reloading application...");
             setTimeout(() => {
                 window.location.reload();
             }, 1000);

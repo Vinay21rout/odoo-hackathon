@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "EcoSphere AI"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
+    FIREBASE_CREDENTIALS_PATH: str | None = None
     
     # Compatibility properties for main.py
     PROJECT_NAME: str = "EcoSphere AI"

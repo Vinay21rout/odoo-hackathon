@@ -6,28 +6,38 @@ from app.schemas.ai.ai import RecommendationItem, DashboardInsightItem
 
 class AIService:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model_name = "gemini-2.5-flash"
+        self.api_key = os.getenv("GROQ_API_KEY")
+        self.model_name = "llama3-8b-8192"
 
-    async def _call_gemini(self, prompt: str, system_instruction: str = "") -> str:
+    async def _call_groq(self, prompt: str, system_instruction: str = "") -> str:
         if not self.api_key:
             return ""
             
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
-        }
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        messages = []
         if system_instruction:
-            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+            messages.append({"role": "system", "content": system_instruction})
+        messages.append({"role": "user", "content": prompt})
+        
+        payload = {
+            "model": self.model_name,
+            "messages": messages
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
             
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
-                res = await client.post(url, json=payload)
+                res = await client.post(url, json=payload, headers=headers)
                 if res.status_code == 200:
                     data = res.json()
-                    return data["candidates"][0]["content"]["parts"][0]["text"]
+                    return data["choices"][0]["message"]["content"]
+                else:
+                    print(f"Groq API error: {res.status_code} - {res.text}")
         except Exception as e:
-            print(f"Gemini API transaction failure: {e}")
+            print(f"Groq API transaction failure: {e}")
         return ""
 
     def _get_esg_data(self, db: Session) -> dict:
@@ -54,8 +64,8 @@ class AIService:
         
         prompt = f"User asks: {user_message}"
         
-        # Call Gemini if API key is present
-        ai_response = await self._call_gemini(prompt, system_instruction)
+        # Call Groq if API key is present
+        ai_response = await self._call_groq(prompt, system_instruction)
         if ai_response:
             return ai_response
             
@@ -72,7 +82,7 @@ class AIService:
         
         system_instruction = "You are a professional corporate sustainability auditor."
         
-        ai_response = await self._call_gemini(prompt, system_instruction)
+        ai_response = await self._call_groq(prompt, system_instruction)
         if ai_response:
             return ai_response
             

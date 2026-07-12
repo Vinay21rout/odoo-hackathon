@@ -8,6 +8,7 @@ class ChallengeBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=255)
     points_reward: int = Field(10, ge=1)
+    category: str = Field("environmental", min_length=1, max_length=50)
     start_date: date
     end_date: date
 
@@ -18,6 +19,7 @@ class ChallengeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=255)
     points_reward: Optional[int] = Field(None, ge=1)
+    category: Optional[str] = Field(None, min_length=1, max_length=50)
     start_date: Optional[date] = None
     end_date: Optional[date] = None
 
@@ -34,6 +36,7 @@ class BadgeBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=255)
     icon_url: Optional[str] = Field(None, max_length=255)
+    points_target: int = Field(500, ge=0)
 
 class BadgeCreate(BadgeBase):
     pass
@@ -42,6 +45,7 @@ class BadgeUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=255)
     icon_url: Optional[str] = Field(None, max_length=255)
+    points_target: Optional[int] = Field(None, ge=0)
 
 class BadgeResponse(BadgeBase):
     id: UUID
@@ -87,4 +91,5 @@ class UserBadgeResponse(BaseModel):
 class LeaderboardEntry(BaseModel):
     user_id: UUID
     full_name: str
-    points: int
+    email: str
+    total_points: int

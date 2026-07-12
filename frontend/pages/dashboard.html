@@ -20,31 +20,31 @@
                 <div class="grid-container">
                     <div class="stats-card">
                         <div class="stats-info">
-                            <h3>Total Departments</h3>
-                            <p id="stat-departments">...</p>
+                            <h3>Environmental Score</h3>
+                            <p><span id="stat-environmental-score">82</span> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">/ 100</span></p>
                         </div>
-                        <div class="stats-icon"><i class="fas fa-sitemap"></i></div>
+                        <div class="stats-icon"><i class="fas fa-leaf"></i></div>
                     </div>
                     <div class="stats-card">
                         <div class="stats-info">
-                            <h3>Total Employees</h3>
-                            <p id="stat-employees">...</p>
+                            <h3>Social Score</h3>
+                            <p><span id="stat-social-score">74</span> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">/ 100</span></p>
                         </div>
-                        <div class="stats-icon"><i class="fas fa-users"></i></div>
+                        <div class="stats-icon"><i class="fas fa-heart"></i></div>
                     </div>
                     <div class="stats-card">
                         <div class="stats-info">
-                            <h3>Carbon Footprint</h3>
-                            <p id="stat-carbon">...</p>
+                            <h3>Governance Score</h3>
+                            <p><span id="stat-governance-score">88</span> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">/ 100</span></p>
                         </div>
-                        <div class="stats-icon" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444;"><i class="fas fa-smog"></i></div>
+                        <div class="stats-icon"><i class="fas fa-shield-alt"></i></div>
                     </div>
                     <div class="stats-card">
                         <div class="stats-info">
-                            <h3>Gamification Leaders</h3>
-                            <p id="stat-points">...</p>
+                            <h3>Overall ESG Score</h3>
+                            <p><span id="stat-overall-score">81</span> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">/ 100</span></p>
                         </div>
-                        <div class="stats-icon" style="background-color: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-trophy"></i></div>
+                        <div class="stats-icon"><i class="fas fa-globe-americas"></i></div>
                     </div>
                 </div>
 
@@ -141,94 +141,121 @@
                 console.warn("Using mock ESG stats due to connection error.");
             }
 
-            // Populate text elements
-            document.getElementById("stat-departments").textContent = orgStats.total_departments;
-            document.getElementById("stat-employees").textContent = orgStats.total_employees;
-            document.getElementById("stat-carbon").textContent = `${esgStats.environmental.carbon || 4200} kg`;
-            document.getElementById("stat-points").textContent = `${esgStats.social.training_hours || 480} Hrs`;
+            // Populate text elements dynamically to match the wireframe KPI scores
+            const carbonVal = esgStats.environmental.carbon || 4200;
+            const trainingHrs = esgStats.social.training_hours || 480;
+            const whistleReports = esgStats.governance.whistleblower_reports || 2;
+
+            // Base scores from the wireframe reference (82, 74, 88), reacting dynamically to database data
+            const envScore = Math.max(40, Math.min(100, Math.round(82 + (4200 - carbonVal) / 20)));
+            const socScore = Math.max(40, Math.min(100, Math.round(74 + (trainingHrs - 480) / 10)));
+            const govScore = Math.max(40, Math.min(100, Math.round(88 - (whistleReports - 2) * 2)));
+            const overallScore = Math.round((envScore + socScore + govScore) / 3);
+
+            document.getElementById("stat-environmental-score").textContent = envScore;
+            document.getElementById("stat-social-score").textContent = socScore;
+            document.getElementById("stat-governance-score").textContent = govScore;
+            document.getElementById("stat-overall-score").textContent = overallScore;
 
             // Draw Charts
             renderCharts(orgStats, esgStats);
         }
 
         function renderCharts(orgStats, esgStats) {
-            // Line Chart: Carbon Emissions Trend
-            const lineCtx = document.getElementById('carbonTrendChart').getContext('2d');
-            new Chart(lineCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'Carbon footprint (kgCO2e)',
-                        data: [780, 810, 720, 640, 580, 520],
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
-                    }
-                }
-            });
+            if (typeof Chart === 'undefined') {
+                console.error("Chart.js is not loaded. Skipping chart rendering.");
+                return;
+            }
 
-            // Radar Chart: ESG Scores
-            const radarCtx = document.getElementById('esgRadarChart').getContext('2d');
-            new Chart(radarCtx, {
-                type: 'radar',
-                data: {
-                    labels: ['Resource Conservation', 'Carbon Abatement', 'Health & Safety', 'Community Impact', 'Policy Compliance', 'Diversity'],
-                    datasets: [{
-                        label: 'Organization score',
-                        data: [85, 78, 90, 80, 95, 88],
-                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                        borderColor: '#10b981',
-                        pointBackgroundColor: '#10b981',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            angleLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                            pointLabels: { color: '#9ca3af' }
+            // Line Chart: Carbon Emissions Trend
+            try {
+                const lineCtx = document.getElementById('carbonTrendChart').getContext('2d');
+                new Chart(lineCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Carbon footprint (kgCO2e)',
+                            data: [780, 810, 720, 640, 580, 520],
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { grid: { color: 'rgba(0, 0, 0, 0.04)' } },
+                            x: { grid: { color: 'rgba(0, 0, 0, 0.04)' } }
                         }
                     }
-                }
-            });
+                });
+            } catch (err) {
+                console.error("Failed to render Carbon Trend Chart:", err);
+            }
+
+            // Radar Chart: ESG Scores
+            try {
+                const radarCtx = document.getElementById('esgRadarChart').getContext('2d');
+                new Chart(radarCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Resource Conservation', 'Carbon Abatement', 'Health & Safety', 'Community Impact', 'Policy Compliance', 'Diversity'],
+                        datasets: [{
+                            label: 'Organization score',
+                            data: [85, 78, 90, 80, 95, 88],
+                            backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                            borderColor: '#2563eb',
+                            pointBackgroundColor: '#2563eb',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                                angleLines: { color: 'rgba(0, 0, 0, 0.04)' },
+                                pointLabels: { color: '#475569' }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to render ESG Radar Chart:", err);
+            }
 
             // Bar Chart: Employees per Department
-            const barCtx = document.getElementById('deptDistributionChart').getContext('2d');
-            const deptLabels = orgStats.department_breakdown.map(d => d.department_name);
-            const deptData = orgStats.department_breakdown.map(d => d.employee_count);
+            try {
+                const barCtx = document.getElementById('deptDistributionChart').getContext('2d');
+                const deptLabels = orgStats.department_breakdown.map(d => d.department_name);
+                const deptData = orgStats.department_breakdown.map(d => d.employee_count);
 
-            new Chart(barCtx, {
-                type: 'bar',
-                data: {
-                    labels: deptLabels,
-                    datasets: [{
-                        label: 'Employee Count',
-                        data: deptData,
-                        backgroundColor: '#34d399',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: deptLabels,
+                        datasets: [{
+                            label: 'Employee Count',
+                            data: deptData,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { grid: { color: 'rgba(0, 0, 0, 0.04)' } },
+                            x: { grid: { color: 'rgba(0, 0, 0, 0.04)' } }
+                        }
                     }
-                }
-            });
+                });
+            } catch (err) {
+                console.error("Failed to render Department Distribution Chart:", err);
+            }
         }
 
         async function sendChatMessage() {
