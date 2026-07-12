@@ -34,13 +34,13 @@ class User(BaseModel):
 
     role_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("roles.id"),
+        ForeignKey("roles.id", ondelete="RESTRICT"),
         index=True
     )
 
     department_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("departments.id"),
+        ForeignKey("departments.id", ondelete="RESTRICT"),
         index=True
     )
 

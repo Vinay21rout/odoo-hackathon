@@ -13,12 +13,12 @@ class UserChallenge(BaseModel):
     __tablename__ = "user_challenges"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
         nullable=False
     )
     challenge_id: Mapped[UUID] = mapped_column(
-        ForeignKey("challenges.id"),
+        ForeignKey("challenges.id", ondelete="CASCADE"),
         index=True,
         nullable=False
     )

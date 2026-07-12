@@ -13,12 +13,12 @@ class UserBadge(BaseModel):
     __tablename__ = "user_badges"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
         nullable=False
     )
     badge_id: Mapped[UUID] = mapped_column(
-        ForeignKey("badges.id"),
+        ForeignKey("badges.id", ondelete="CASCADE"),
         index=True,
         nullable=False
     )

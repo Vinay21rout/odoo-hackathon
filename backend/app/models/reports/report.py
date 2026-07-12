@@ -11,7 +11,7 @@ class SavedReport(BaseModel):
     __tablename__ = "saved_reports"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
         nullable=False
     )

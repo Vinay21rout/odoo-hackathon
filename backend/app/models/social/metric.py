@@ -12,7 +12,7 @@ class SocialRecord(BaseModel):
     __tablename__ = "social_records"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
         nullable=False
     )
