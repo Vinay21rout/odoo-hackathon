@@ -12,6 +12,7 @@ from app.routers.social.metric import router as social_router
 from app.routers.governance.metric import router as governance_router
 from app.routers.gamification.gamification import router as gamification_router
 from app.routers.reports.reports import router as reports_router
+from app.routers.ai.ai import router as ai_router
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
 
@@ -56,6 +57,7 @@ app.include_router(social_router, prefix=settings.API_V1_STR)
 app.include_router(governance_router, prefix=settings.API_V1_STR)
 app.include_router(gamification_router, prefix=settings.API_V1_STR)
 app.include_router(reports_router, prefix=settings.API_V1_STR)
+app.include_router(ai_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def read_root():
