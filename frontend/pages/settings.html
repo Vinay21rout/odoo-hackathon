@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <div class="glass-panel" style="max-width: 600px; margin-bottom: 24px;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Developer Integration Controls</h3>
+                    </div>
+                    <form id="api-settings-form" onsubmit="saveApiSettings(event)" style="margin-top: 16px;">
+                        <div class="form-group">
+                            <label for="api-url">API Host Server Base URL</label>
+                            <input type="text" id="api-url" class="form-control" placeholder="http://localhost:8000/api/v1" required>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">
+                                Adjust this value if your FastAPI backend runs on a custom port or domain. Relies on local storage state.
+                            </p>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                    </form>
+                </div>
+
+                <div class="glass-panel" style="max-width: 600px;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Rapid ESG Seeding Tool</h3>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+                            Quickly seed your PostgreSQL instance with a mock sustainability organizational structure (Engineering, Sustainability, and HR departments) along with default metric entries. Perfect for live demonstrations.
+                        </p>
+                        <button class="btn-primary" style="background: var(--warning-color);" onclick="seedDatabase()">
+                            <i class="fas fa-seedling"></i> Seed Active Database
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("api-url").value = API_BASE_URL;
+        });
+
+        function saveApiSettings(event) {
+            event.preventDefault();
+            const url = document.getElementById("api-url").value.trim();
+            localStorage.setItem("api_base_url", url);
+            showToast("API settings saved! Reloading application...");
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        async function seedDatabase() {
+            if (!confirm("Are you sure you want to seed the database with mock records?")) return;
+            showToast("Seeding database, please wait...");
+            
+            try {
+                // 1. Create Sustainability Department
+                const deptRes = await apiCall("/departments", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: "Sustainability & ESG",
+                        code: "SUS",
+                        description: "Coordinates corporate climate and waste reduction targets."
+                    })
+                });
+                
+                const deptId = deptRes.data.id;
+                
+                // 2. Create Role Admin
+                const roleAdminId = "c1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"; // Hardcoded default role in employees
+                
+                // 3. Create Sample Employee
+                const empRes = await apiCall("/employees", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        full_name: "Vinay Rout",
+                        email: "admin@ecosphere.ai",
+                        firebase_uid: "admin-uid",
+                        department_id: deptId,
+                        role_id: roleAdminId
+                    })
+                });
+                
+                const userId = empRes.data.id;
+
+                // 4. Create Carbon Metric
+                await apiCall("/environmental", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        user_id: userId,
+                        metric_type: "carbon",
+                        value: 520.5,
+                        unit: "kgCO2e",
+                        recorded_date: new Date().toISOString().split('T')[0],
+                        description: "Office HVAC emissions logged from utility bills."
+                    })
+                });
+
+                // 5. Create Training Hour Metric
+                await apiCall("/social", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        user_id: userId,
+                        metric_type: "training_hours",
+                        value: 24.0,
+                        recorded_date: new Date().toISOString().split('T')[0],
+                        description: "Company-wide anti-harassment training workshop."
+                    })
+                });
+
+                // 6. Create Whistleblower Metric
+                await apiCall("/governance", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        user_id: userId,
+                        metric_type: "whistleblower_reports",
+                        value: 1.0,
+                        status: "pending",
+                        recorded_date: new Date().toISOString().split('T')[0],
+                        description: "Anonymous submission reporting waste disposal guidelines infraction."
+                    })
+                });
+
+                // 7. Create Gamification Challenges
+                await apiCall("/gamification/challenges", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        title: "Zero Waste Initiative",
+                        description: "Minimize desk waste generation to under 0.5kg this week.",
+                        points_reward: 150,
+                        category: "environmental",
+                        start_date: new Date().toISOString().split('T')[0],
+                        end_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]
+                    })
+                });
+
+                showToast("Database seeded successfully with ESG profiles!");
+            } catch (err) {
+                showToast("Database seeded or partial tables set. " + err.message, "error");
+            }
+        }
+    </script>
+</body>
+</html>

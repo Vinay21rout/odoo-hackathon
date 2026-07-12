@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Reports - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .report-header-box {
+            background-color: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--border-radius);
+            padding: 32px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .report-header-text h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .report-header-text p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+        .esg-agg-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .esg-agg-box {
+            background-color: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--border-radius);
+            padding: 24px;
+        }
+        .esg-agg-box h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .esg-agg-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .esg-agg-list li {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            padding: 6px 0;
+            border-bottom: 1px dashed var(--surface-border);
+        }
+        .esg-agg-list li:last-child {
+            border-bottom: none;
+        }
+        .esg-agg-list li span:last-child {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <!-- Summary Banner -->
+                <div class="report-header-box">
+                    <div class="report-header-text">
+                        <h3>Interactive ESG Aggregations</h3>
+                        <p>Compile carbon emissions, training workloads, and compliance logs in real-time.</p>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" onclick="loadDynamicEsg()">
+                            <i class="fas fa-sync-alt"></i> Compile Live
+                        </button>
+                        <button class="btn-primary" onclick="openAddModal()">
+                            <i class="fas fa-save"></i> Save Snapshot
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Aggregates Grid -->
+                <div class="esg-agg-grid">
+                    <!-- Environmental -->
+                    <div class="esg-agg-box">
+                        <h4 style="color: #10b981;"><i class="fas fa-leaf"></i> Environmental (E)</h4>
+                        <ul class="esg-agg-list">
+                            <li><span>Carbon Footprint:</span> <span id="val-carbon">— kg</span></li>
+                            <li><span>Energy Consumed:</span> <span id="val-energy">— kWh</span></li>
+                            <li><span>Water Diverted:</span> <span id="val-water">— m3</span></li>
+                            <li><span>Waste Diverted:</span> <span id="val-waste">— kg</span></li>
+                        </ul>
+                    </div>
+                    <!-- Social -->
+                    <div class="esg-agg-box">
+                        <h4 style="color: #3b82f6;"><i class="fas fa-heart"></i> Social (S)</h4>
+                        <ul class="esg-agg-list">
+                            <li><span>Training Workload:</span> <span id="val-training">— Hrs</span></li>
+                            <li><span>Safety Incidents:</span> <span id="val-incidents">— cases</span></li>
+                            <li><span>Community Work:</span> <span id="val-community">— Hrs</span></li>
+                        </ul>
+                    </div>
+                    <!-- Governance -->
+                    <div class="esg-agg-box">
+                        <h4 style="color: #f59e0b;"><i class="fas fa-shield-alt"></i> Governance (G)</h4>
+                        <ul class="esg-agg-list">
+                            <li><span>Whistleblower Reports:</span> <span id="val-whistle">— reports</span></li>
+                            <li><span>Complaints Handled:</span> <span id="val-violations">— violations</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Saved Reports Section -->
+                <div class="panel-header" style="margin-bottom: 20px;">
+                    <h3 class="panel-title">Saved Audit History Snapshots</h3>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Saved Date</th>
+                                <th>Title</th>
+                                <th>Report Type</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">Loading saved snapshots...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snapshot Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-box">
+            <div class="modal-title">Save ESG Report Snapshot</div>
+            <form id="add-form" onsubmit="handleCreateSubmit(event)">
+                <div class="form-group">
+                    <label for="rep-title">Report Title</label>
+                    <input type="text" id="rep-title" class="form-control" placeholder="e.g. Q3 Sustainability Audit Report" required>
+                </div>
+                <div class="form-group">
+                    <label for="rep-type">Audit Type</label>
+                    <select id="rep-type" class="form-control" required>
+                        <option value="quarterly">Quarterly Review</option>
+                        <option value="annual">Annual Corporate Report</option>
+                        <option value="special">Special Audit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rep-summary">Executive Summary</label>
+                    <textarea id="rep-summary" class="form-control" rows="4" placeholder="Brief summary of ESG indicators..." required></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Snapshot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        let currentDynamicData = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDynamicEsg();
+            loadSavedSnapshots();
+        });
+
+        async function loadDynamicEsg() {
+            try {
+                const res = await apiCall("/reports/dynamic");
+                if (res && res.success) {
+                    currentDynamicData = res.data;
+                    populateAggregates(res.data);
+                }
+            } catch (err) {
+                // Fallback to static numbers for demonstration
+                const fallback = {
+                    environmental: { carbon: 4200, energy: 12500, water: 8400, waste: 2100 },
+                    social: { training_hours: 480, health_safety_incidents: 0, community_hours: 150 },
+                    governance: { whistleblower_reports: 2, policy_violations: 0 }
+                };
+                currentDynamicData = fallback;
+                populateAggregates(fallback);
+                showToast("Loaded demonstration numbers.", "warning");
+            }
+        }
+
+        function populateAggregates(data) {
+            document.getElementById("val-carbon").textContent = `${data.environmental.carbon} kg`;
+            document.getElementById("val-energy").textContent = `${data.environmental.energy} kWh`;
+            document.getElementById("val-water").textContent = `${data.environmental.water} m3`;
+            document.getElementById("val-waste").textContent = `${data.environmental.waste} kg`;
+
+            document.getElementById("val-training").textContent = `${data.social.training_hours} Hrs`;
+            document.getElementById("val-incidents").textContent = `${data.social.health_safety_incidents} cases`;
+            document.getElementById("val-community").textContent = `${data.social.community_hours} Hrs`;
+
+            document.getElementById("val-whistle").textContent = `${data.governance.whistleblower_reports} reports`;
+            document.getElementById("val-violations").textContent = `${data.governance.policy_violations} cases`;
+        }
+
+        async function loadSavedSnapshots() {
+            try {
+                const res = await apiCall("/reports?limit=20");
+                if (res && res.success) {
+                    populateTable(res.data.items);
+                }
+            } catch (err) {
+                const tbody = document.getElementById("reports-tbody");
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No snapshots logged yet.</td></tr>`;
+            }
+        }
+
+        function populateTable(items) {
+            const tbody = document.getElementById("reports-tbody");
+            tbody.innerHTML = "";
+            
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No snapshots logged yet.</td></tr>`;
+                return;
+            }
+
+            items.forEach(rec => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${new Date(rec.created_at).toLocaleDateString()}</td>
+                    <td style="font-weight: 600; color: var(--primary-color);">${rec.title}</td>
+                    <td><span style="text-transform: capitalize;">${rec.report_type}</span></td>
+                    <td><span class="badge badge-active">ARCHIVED</span></td>
+                    <td style="text-align: right;">
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="deleteRecord('${rec.id}')">
+                            <i class="fas fa-trash-alt" style="color: var(--error-color);"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAddModal() {
+            // Auto fill Executive summary with dynamic aggregates values
+            if (currentDynamicData) {
+                const env = currentDynamicData.environmental;
+                const soc = currentDynamicData.social;
+                const gov = currentDynamicData.governance;
+                const summary = `ESG Snapshot Aggregates:\n- Environmental: Carbon emissions totals at ${env.carbon} kg; Energy consumption is at ${env.energy} kWh.\n- Social: Employees recorded ${soc.training_hours} training hours and logged ${soc.community_hours} hours of volunteer services.\n- Governance: System filed ${gov.whistleblower_reports} compliance reports.`;
+                document.getElementById("rep-summary").value = summary;
+            }
+            document.getElementById("add-modal").classList.add("active");
+        }
+
+        function closeAddModal() {
+            document.getElementById("add-modal").classList.remove("active");
+            document.getElementById("add-form").reset();
+        }
+
+        async function handleCreateSubmit(event) {
+            event.preventDefault();
+            const title = document.getElementById("rep-title").value.trim();
+            const report_type = document.getElementById("rep-type").value;
+            const summary = document.getElementById("rep-summary").value.trim();
+            
+            let user_id = "00000000-0000-0000-0000-000000000000";
+            try {
+                const empRes = await apiCall("/employees?limit=1");
+                if (empRes && empRes.success && empRes.data.items.length > 0) {
+                    user_id = empRes.data.items[0].id;
+                }
+            } catch (e) {}
+
+            try {
+                // Backend requires payload match ReportCreate
+                const res = await apiCall("/reports", {
+                    method: "POST",
+                    body: JSON.stringify({ user_id, title, report_type, content: { summary } })
+                });
+                if (res && res.success) {
+                    showToast("ESG Report snapshot archived successfully!");
+                    closeAddModal();
+                    loadSavedSnapshots();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to save snapshot.", "error");
+            }
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm("Are you sure you want to delete this snapshot audit?")) return;
+            try {
+                const res = await apiCall(`/reports/${id}`, {
+                    method: "DELETE"
+                });
+                if (res && res.success) {
+                    showToast("Snapshot deleted successfully!");
+                    loadSavedSnapshots();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to delete snapshot.", "error");
+            }
+        }
+    </script>
+</body>
+</html>

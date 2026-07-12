@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Departments - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <!-- Controls row -->
+                <div class="controls-row">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-box" class="search-control" placeholder="Search by name or code..." oninput="handleSearch()">
+                    </div>
+                    <button class="btn-primary" onclick="openAddModal()">
+                        <i class="fas fa-plus"></i> Add Department
+                    </button>
+                </div>
+
+                <!-- Departments Table -->
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="departments-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">Loading departments...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination footer -->
+                <div class="pagination-footer">
+                    <div style="font-size: 14px; color: var(--text-secondary);" id="pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <div class="pagination-buttons">
+                        <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+                        <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Department Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-box">
+            <div class="modal-title">Create New Department</div>
+            <form id="add-form" onsubmit="handleCreateSubmit(event)">
+                <div class="form-group">
+                    <label for="dept-name">Department Name</label>
+                    <input type="text" id="dept-name" class="form-control" placeholder="e.g. Finance, Operations" required>
+                </div>
+                <div class="form-group">
+                    <label for="dept-code">Department Code</label>
+                    <input type="text" id="dept-code" class="form-control" placeholder="e.g. FIN, OPS" required>
+                </div>
+                <div class="form-group">
+                    <label for="dept-desc">Description</label>
+                    <textarea id="dept-desc" class="form-control" rows="3" placeholder="Describe department scope..."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        let currentPage = 1;
+        let currentLimit = 10;
+        let searchQuery = "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDepartments();
+        });
+
+        async function loadDepartments() {
+            try {
+                let endpoint = `/departments?page=${currentPage}&limit=${currentLimit}`;
+                if (searchQuery) {
+                    endpoint += `&search=${encodeURIComponent(searchQuery)}`;
+                }
+                
+                const res = await apiCall(endpoint);
+                if (res && res.success) {
+                    populateTable(res.data);
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to load departments.", "error");
+            }
+        }
+
+        function populateTable(data) {
+            const tbody = document.getElementById("departments-tbody");
+            tbody.innerHTML = "";
+            
+            if (data.items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No departments found.</td></tr>`;
+                document.getElementById("pagination-info").textContent = "Showing 0 to 0 of 0 entries";
+                document.getElementById("prev-btn").disabled = true;
+                document.getElementById("next-btn").disabled = true;
+                return;
+            }
+
+            data.items.forEach(dept => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${dept.name}</td>
+                    <td><code style="color: var(--primary-color); font-weight: 600;">${dept.code}</code></td>
+                    <td style="color: var(--text-secondary);">${dept.description || "—"}</td>
+                    <td><span class="badge ${dept.is_active ? 'badge-active' : 'badge-inactive'}">${dept.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td style="text-align: right;">
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="deleteDepartment('${dept.id}')">
+                            <i class="fas fa-trash-alt" style="color: var(--error-color);"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Pagination info
+            const start = (data.page - 1) * data.limit + 1;
+            const end = Math.min(start + data.items.length - 1, data.total);
+            document.getElementById("pagination-info").textContent = `Showing ${start} to ${end} of ${data.total} entries`;
+            
+            // Buttons status
+            document.getElementById("prev-btn").disabled = data.page <= 1;
+            document.getElementById("next-btn").disabled = data.page >= data.pages;
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById("search-box").value.trim();
+            currentPage = 1; // Reset to page 1 on new search
+            loadDepartments();
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadDepartments();
+        }
+
+        function openAddModal() {
+            document.getElementById("add-modal").classList.add("active");
+        }
+
+        function closeAddModal() {
+            document.getElementById("add-modal").classList.remove("active");
+            document.getElementById("add-form").reset();
+        }
+
+        async function handleCreateSubmit(event) {
+            event.preventDefault();
+            const name = document.getElementById("dept-name").value.trim();
+            const code = document.getElementById("dept-code").value.trim();
+            const description = document.getElementById("dept-desc").value.trim();
+
+            try {
+                const res = await apiCall("/departments", {
+                    method: "POST",
+                    body: JSON.stringify({ name, code, description })
+                });
+                if (res && res.success) {
+                    showToast("Department created successfully!");
+                    closeAddModal();
+                    loadDepartments();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to create department.", "error");
+            }
+        }
+
+        async function deleteDepartment(id) {
+            if (!confirm("Are you sure you want to delete this department?")) return;
+            try {
+                const res = await apiCall(`/departments/${id}`, {
+                    method: "DELETE"
+                });
+                if (res && res.success) {
+                    showToast("Department deleted successfully!");
+                    loadDepartments();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to delete department.", "error");
+            }
+        }
+    </script>
+</body>
+</html>

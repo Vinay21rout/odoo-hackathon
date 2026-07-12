@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Metrics - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .metric-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .filter-card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .filter-card:hover, .filter-card.active {
+            border-color: var(--primary-color);
+            background-color: rgba(16, 185, 129, 0.05);
+            transform: translateY(-2px);
+        }
+        .filter-card i {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        .filter-card.active i {
+            color: var(--primary-color);
+        }
+        .filter-card h4 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <!-- Top Metric Selection Cards -->
+                <div class="metric-filter-grid">
+                    <div class="filter-card active" onclick="setMetricFilter('', this)">
+                        <i class="fas fa-th-large"></i>
+                        <h4>All Metrics</h4>
+                    </div>
+                    <div class="filter-card" onclick="setMetricFilter('carbon', this)">
+                        <i class="fas fa-smog" style="color: #ef4444;"></i>
+                        <h4>Carbon Footprint</h4>
+                    </div>
+                    <div class="filter-card" onclick="setMetricFilter('energy', this)">
+                        <i class="fas fa-bolt" style="color: #f59e0b;"></i>
+                        <h4>Energy Usage</h4>
+                    </div>
+                    <div class="filter-card" onclick="setMetricFilter('water', this)">
+                        <i class="fas fa-tint" style="color: #3b82f6;"></i>
+                        <h4>Water Consumption</h4>
+                    </div>
+                    <div class="filter-card" onclick="setMetricFilter('waste', this)">
+                        <i class="fas fa-trash-alt" style="color: #10b981;"></i>
+                        <h4>Waste Generation</h4>
+                    </div>
+                </div>
+
+                <!-- Controls row -->
+                <div class="controls-row">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-box" class="search-control" placeholder="Search description..." oninput="handleSearch()">
+                    </div>
+                    <button class="btn-primary" onclick="openAddModal()">
+                        <i class="fas fa-plus"></i> Record Metric
+                    </button>
+                </div>
+
+                <!-- Metrics Table -->
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Recorded Date</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Unit</th>
+                                <th>Description</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metrics-tbody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary);">Loading environmental records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination footer -->
+                <div class="pagination-footer">
+                    <div style="font-size: 14px; color: var(--text-secondary);" id="pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <div class="pagination-buttons">
+                        <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+                        <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-box">
+            <div class="modal-title">Record Environmental Metric</div>
+            <form id="add-form" onsubmit="handleCreateSubmit(event)">
+                <div class="form-group">
+                    <label for="metric-type">Metric Type</label>
+                    <select id="metric-type" class="form-control" onchange="updateDefaultUnits()" required>
+                        <option value="">Select type...</option>
+                        <option value="carbon">Carbon Footprint (Emissions)</option>
+                        <option value="energy">Energy Consumption</option>
+                        <option value="water">Water Consumption</option>
+                        <option value="waste">Waste Management</option>
+                    </select>
+                </div>
+                <div class="grid-container" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="metric-value">Value</label>
+                        <input type="number" step="any" id="metric-value" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="metric-unit">Unit</label>
+                        <input type="text" id="metric-unit" class="form-control" placeholder="e.g. kg, kWh, m3" required>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="metric-date">Recorded Date</label>
+                    <input type="date" id="metric-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="metric-desc">Description</label>
+                    <textarea id="metric-desc" class="form-control" rows="3" placeholder="Describe metric data source..."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        let currentPage = 1;
+        let currentLimit = 10;
+        let searchQuery = "";
+        let filterMetric = "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("metric-date").value = new Date().toISOString().split('T')[0];
+            loadMetrics();
+        });
+
+        async function loadMetrics() {
+            try {
+                let endpoint = `/environmental?page=${currentPage}&limit=${currentLimit}`;
+                if (filterMetric) {
+                    endpoint += `&metric_type=${filterMetric}`;
+                }
+                if (searchQuery) {
+                    endpoint += `&search=${encodeURIComponent(searchQuery)}`;
+                }
+                
+                const res = await apiCall(endpoint);
+                if (res && res.success) {
+                    populateTable(res.data);
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to load metrics.", "error");
+            }
+        }
+
+        function populateTable(data) {
+            const tbody = document.getElementById("metrics-tbody");
+            tbody.innerHTML = "";
+            
+            if (data.items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No records found.</td></tr>`;
+                document.getElementById("pagination-info").textContent = "Showing 0 to 0 of 0 entries";
+                document.getElementById("prev-btn").disabled = true;
+                document.getElementById("next-btn").disabled = true;
+                return;
+            }
+
+            data.items.forEach(rec => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${rec.recorded_date}</td>
+                    <td><code style="text-transform: uppercase; font-weight: 600;">${rec.metric_type}</code></td>
+                    <td style="font-weight: 600; color: var(--primary-color);">${rec.value}</td>
+                    <td>${rec.unit}</td>
+                    <td style="color: var(--text-secondary);">${rec.description || "—"}</td>
+                    <td style="text-align: right;">
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="deleteRecord('${rec.id}')">
+                            <i class="fas fa-trash-alt" style="color: var(--error-color);"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Pagination info
+            const start = (data.page - 1) * data.limit + 1;
+            const end = Math.min(start + data.items.length - 1, data.total);
+            document.getElementById("pagination-info").textContent = `Showing ${start} to ${end} of ${data.total} entries`;
+            
+            // Buttons status
+            document.getElementById("prev-btn").disabled = data.page <= 1;
+            document.getElementById("next-btn").disabled = data.page >= data.pages;
+        }
+
+        function setMetricFilter(type, cardEl) {
+            // Remove active classes
+            document.querySelectorAll(".filter-card").forEach(c => c.classList.remove("active"));
+            cardEl.classList.add("active");
+            
+            filterMetric = type;
+            currentPage = 1;
+            loadMetrics();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById("search-box").value.trim();
+            currentPage = 1;
+            loadMetrics();
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadMetrics();
+        }
+
+        function updateDefaultUnits() {
+            const type = document.getElementById("metric-type").value;
+            const unitInput = document.getElementById("metric-unit");
+            if (type === "carbon") unitInput.value = "kgCO2e";
+            else if (type === "energy") unitInput.value = "kWh";
+            else if (type === "water") unitInput.value = "m3";
+            else if (type === "waste") unitInput.value = "kg";
+            else unitInput.value = "";
+        }
+
+        function openAddModal() {
+            document.getElementById("add-modal").classList.add("active");
+        }
+
+        function closeAddModal() {
+            document.getElementById("add-modal").classList.remove("active");
+            document.getElementById("add-form").reset();
+            document.getElementById("metric-date").value = new Date().toISOString().split('T')[0];
+        }
+
+        async function handleCreateSubmit(event) {
+            event.preventDefault();
+            const metric_type = document.getElementById("metric-type").value;
+            const value = parseFloat(document.getElementById("metric-value").value);
+            const unit = document.getElementById("metric-unit").value.trim();
+            const recorded_date = document.getElementById("metric-date").value;
+            const description = document.getElementById("metric-desc").value.trim();
+            
+            // Hackathon/mock UID session user id retrieval:
+            // Since User ID is required by schema, we can look up current user profile or mock it.
+            // A good practice is to extract user id from get_current_user token backend, but the schema requires user_id.
+            // Let's look up our own user ID dynamically!
+            let user_id = "00000000-0000-0000-0000-000000000000"; // Fallback dummy
+            try {
+                // Fetch current user details or use a standard employee ID from employees listing
+                const empRes = await apiCall("/employees?limit=1");
+                if (empRes && empRes.success && empRes.data.items.length > 0) {
+                    user_id = empRes.data.items[0].id;
+                }
+            } catch (e) {}
+
+            try {
+                const res = await apiCall("/environmental", {
+                    method: "POST",
+                    body: JSON.stringify({ user_id, metric_type, value, unit, recorded_date, description })
+                });
+                if (res && res.success) {
+                    showToast("Environmental metric logged successfully!");
+                    closeAddModal();
+                    loadMetrics();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to log metric.", "error");
+            }
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm("Are you sure you want to delete this record?")) return;
+            try {
+                const res = await apiCall(`/environmental/${id}`, {
+                    method: "DELETE"
+                });
+                if (res && res.success) {
+                    showToast("Record deleted successfully!");
+                    loadMetrics();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to delete record.", "error");
+            }
+        }
+    </script>
+</body>
+</html>

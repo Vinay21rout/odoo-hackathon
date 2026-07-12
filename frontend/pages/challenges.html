@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamification - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gamification-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .challenge-card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+        .challenge-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        .challenge-info h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .challenge-info p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .challenge-info span {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .leaderboard-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        .rank-1 { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .rank-2 { background-color: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+        .rank-3 { background-color: rgba(180, 83, 9, 0.2); color: #b45309; }
+        .badge-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 16px;
+        }
+        .badge-box {
+            background-color: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .badge-box:hover {
+            transform: scale(1.05);
+            border-color: #f59e0b;
+        }
+        .badge-box i {
+            font-size: 32px;
+            color: #f59e0b;
+            margin-bottom: 8px;
+        }
+        .badge-box h5 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .badge-box p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <div class="gamification-grid">
+                    <!-- Challenges Section -->
+                    <div>
+                        <div class="panel-header">
+                            <h3 class="panel-title">Active ESG Challenges</h3>
+                            <button class="btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openCreateChallengeModal()">
+                                <i class="fas fa-plus"></i> New
+                            </button>
+                        </div>
+                        <div id="challenges-list" style="margin-top: 16px;">
+                            <p style="color: var(--text-secondary);">Loading challenges...</p>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Section -->
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Sustainability Leaderboard</h3>
+                        </div>
+                        <div class="table-responsive" style="margin-top: 16px; border: none;">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">Rank</th>
+                                        <th>Employee</th>
+                                        <th style="text-align: right;">Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-tbody">
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">Loading leaderboard standings...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Badges Section -->
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Corporate Badge Collections</h3>
+                        <button class="btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openCreateBadgeModal()">
+                            <i class="fas fa-plus"></i> Create Badge
+                        </button>
+                    </div>
+                    <div class="badge-showcase" id="badges-showcase" style="margin-top: 20px;">
+                        <p style="color: var(--text-secondary);">Loading badges collection...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Challenge Modal -->
+    <div class="modal-overlay" id="challenge-modal">
+        <div class="modal-box">
+            <div class="modal-title">Create Challenge</div>
+            <form id="challenge-form" onsubmit="handleCreateChallenge(event)">
+                <div class="form-group">
+                    <label for="ch-title">Challenge Title</label>
+                    <input type="text" id="ch-title" class="form-control" placeholder="e.g. Zero Plastic Week" required>
+                </div>
+                <div class="form-group">
+                    <label for="ch-desc">Description</label>
+                    <textarea id="ch-desc" class="form-control" rows="3" placeholder="Describe the mission guidelines..." required></textarea>
+                </div>
+                <div class="grid-container" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="ch-points">Points Reward</label>
+                        <input type="number" id="ch-points" class="form-control" value="100" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="ch-type">ESG Scope</label>
+                        <select id="ch-type" class="form-control" required>
+                            <option value="environmental">Environmental</option>
+                            <option value="social">Social</option>
+                            <option value="governance">Governance</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-container" style="grid-template-columns: 1fr 1fr; margin-bottom: 0; margin-top: 16px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="ch-start">Start Date</label>
+                        <input type="date" id="ch-start" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="ch-end">End Date</label>
+                        <input type="date" id="ch-end" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-buttons" style="margin-top: 24px;">
+                    <button type="button" class="btn-secondary" onclick="closeChallengeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Badge Modal -->
+    <div class="modal-overlay" id="badge-modal">
+        <div class="modal-box">
+            <div class="modal-title">Create Badge</div>
+            <form id="badge-form" onsubmit="handleCreateBadge(event)">
+                <div class="form-group">
+                    <label for="bd-name">Badge Name</label>
+                    <input type="text" id="bd-name" class="form-control" placeholder="e.g. Green Champion" required>
+                </div>
+                <div class="form-group">
+                    <label for="bd-desc">Description</label>
+                    <textarea id="bd-desc" class="form-control" rows="3" placeholder="Describe badge credentials..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="bd-points">Points Target to Unlock</label>
+                    <input type="number" id="bd-points" class="form-control" value="500" required>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" onclick="closeBadgeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("ch-start").value = today;
+            
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            document.getElementById("ch-end").value = nextWeek.toISOString().split('T')[0];
+            
+            loadGamificationData();
+        });
+
+        async function loadGamificationData() {
+            loadChallenges();
+            loadLeaderboard();
+            loadBadges();
+        }
+
+        async function loadChallenges() {
+            try {
+                const res = await apiCall("/gamification/challenges?limit=10");
+                if (res && res.success) {
+                    populateChallenges(res.data.items);
+                }
+            } catch (err) {
+                console.error("Failed to load challenges.", err);
+            }
+        }
+
+        function populateChallenges(items) {
+            const container = document.getElementById("challenges-list");
+            container.innerHTML = "";
+            
+            if (items.length === 0) {
+                container.innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No challenges active at this time.</p>`;
+                return;
+            }
+
+            items.forEach(ch => {
+                const div = document.createElement("div");
+                div.className = "challenge-card";
+                div.innerHTML = `
+                    <div class="challenge-info">
+                        <h4>${ch.title}</h4>
+                        <p>${ch.description}</p>
+                        <span><i class="fas fa-gem"></i> +${ch.points_reward} Points • Scope: <code style="text-transform: uppercase;">${ch.category}</code></span>
+                    </div>
+                    <button class="btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="joinChallenge('${ch.id}')">
+                        Join Challenge
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const res = await apiCall("/gamification/leaderboard");
+                if (res && res.success) {
+                    populateLeaderboard(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to load leaderboard.", err);
+            }
+        }
+
+        function populateLeaderboard(items) {
+            const tbody = document.getElementById("leaderboard-tbody");
+            tbody.innerHTML = "";
+            
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No participants yet.</td></tr>`;
+                return;
+            }
+
+            items.forEach((item, index) => {
+                const rankClass = index === 0 ? "rank-1" : index === 1 ? "rank-2" : index === 2 ? "rank-3" : "";
+                const rankDisplay = `<div class="leaderboard-rank ${rankClass}">${index + 1}</div>`;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${rankDisplay}</td>
+                    <td style="font-weight: 500;">${item.full_name} <br> <span style="font-size: 11px; color: var(--text-secondary);">${item.email}</span></td>
+                    <td style="text-align: right; font-weight: 700; color: var(--primary-color); font-size: 16px;">${item.total_points}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function loadBadges() {
+            try {
+                const res = await apiCall("/gamification/badges?limit=20");
+                if (res && res.success) {
+                    populateBadges(res.data.items);
+                }
+            } catch (err) {
+                console.error("Failed to load badges.", err);
+            }
+        }
+
+        function populateBadges(items) {
+            const showcase = document.getElementById("badges-showcase");
+            showcase.innerHTML = "";
+            
+            if (items.length === 0) {
+                showcase.innerHTML = `<p style="color: var(--text-secondary);">No badges configured yet.</p>`;
+                return;
+            }
+
+            items.forEach(bd => {
+                const div = document.createElement("div");
+                div.className = "badge-box";
+                div.innerHTML = `
+                    <i class="fas fa-award"></i>
+                    <h5>${bd.name}</h5>
+                    <p>${bd.description}</p>
+                    <div style="font-size: 11px; font-weight: 600; color: var(--warning-color); margin-top: 8px;">Target: ${bd.points_target} pts</div>
+                `;
+                showcase.appendChild(div);
+            });
+        }
+
+        function openCreateChallengeModal() {
+            document.getElementById("challenge-modal").classList.add("active");
+        }
+
+        function closeChallengeModal() {
+            document.getElementById("challenge-modal").classList.remove("active");
+            document.getElementById("challenge-form").reset();
+        }
+
+        async function handleCreateChallenge(event) {
+            event.preventDefault();
+            const title = document.getElementById("ch-title").value.trim();
+            const description = document.getElementById("ch-desc").value.trim();
+            const points_reward = parseInt(document.getElementById("ch-points").value);
+            const category = document.getElementById("ch-type").value;
+            const start_date = document.getElementById("ch-start").value;
+            const end_date = document.getElementById("ch-end").value;
+
+            try {
+                const res = await apiCall("/gamification/challenges", {
+                    method: "POST",
+                    body: JSON.stringify({ title, description, points_reward, category, start_date, end_date })
+                });
+                if (res && res.success) {
+                    showToast("Challenge created successfully!");
+                    closeChallengeModal();
+                    loadChallenges();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to create challenge.", "error");
+            }
+        }
+
+        function openCreateBadgeModal() {
+            document.getElementById("badge-modal").classList.add("active");
+        }
+
+        function closeBadgeModal() {
+            document.getElementById("badge-modal").classList.remove("active");
+            document.getElementById("badge-form").reset();
+        }
+
+        async function handleCreateBadge(event) {
+            event.preventDefault();
+            const name = document.getElementById("bd-name").value.trim();
+            const description = document.getElementById("bd-desc").value.trim();
+            const points_target = parseInt(document.getElementById("bd-points").value);
+
+            try {
+                const res = await apiCall("/gamification/badges", {
+                    method: "POST",
+                    body: JSON.stringify({ name, description, points_target })
+                });
+                if (res && res.success) {
+                    showToast("Badge created successfully!");
+                    closeBadgeModal();
+                    loadBadges();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to create badge.", "error");
+            }
+        }
+
+        async function joinChallenge(challenge_id) {
+            // Find a user ID dynamically
+            let user_id = "";
+            try {
+                const empRes = await apiCall("/employees?limit=1");
+                if (empRes && empRes.success && empRes.data.items.length > 0) {
+                    user_id = empRes.data.items[0].id;
+                }
+            } catch (e) {}
+            
+            if (!user_id) {
+                showToast("Please create an employee profile first to join challenges.", "error");
+                return;
+            }
+
+            try {
+                const res = await apiCall("/gamification/user-challenges", {
+                    method: "POST",
+                    body: JSON.stringify({ user_id, challenge_id, status: "in_progress", progress: 0.0 })
+                });
+                if (res && res.success) {
+                    showToast("Joined challenge! View under user progress.");
+                }
+            } catch (err) {
+                showToast(err.message || "Already joined or failed.", "error");
+            }
+        }
+    </script>
+</body>
+</html>

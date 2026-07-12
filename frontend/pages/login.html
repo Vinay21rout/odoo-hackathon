@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSphere AI - Sign In</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.1) 0%, rgba(11, 15, 25, 1) 90%);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(22, 29, 48, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-logo i {
+            font-size: 40px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .login-logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .login-logo p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+        .dev-badge {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <i class="fas fa-globe-americas"></i>
+                <h1>EcoSphere AI</h1>
+                <p>Enterprise ESG Intelligence Platform</p>
+            </div>
+            
+            <div class="dev-badge">
+                <i class="fas fa-tools"></i>
+                <div>
+                    <strong>Developer Shortcut Enable:</strong> Authenticate locally using a Mock UID without configuring Firebase admin.
+                </div>
+            </div>
+
+            <form id="login-form" onsubmit="handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label for="uid">Firebase UID (Mock Token)</label>
+                    <input type="text" id="uid" class="form-control" placeholder="e.g. admin-uid, employee-uid" required value="admin-uid">
+                </div>
+                <div class="form-group">
+                    <label for="email">User Email</label>
+                    <input type="email" id="email" class="form-control" placeholder="admin@ecosphere.ai" required value="admin@ecosphere.ai">
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        function handleLoginSubmit(event) {
+            event.preventDefault();
+            const uid = document.getElementById("uid").value.trim();
+            const email = document.getElementById("email").value.trim();
+            
+            if (!uid || !email) {
+                alert("Please fill in both fields.");
+                return;
+            }
+            
+            // Standardize mock token setting
+            const token = `mock-${uid}`;
+            localStorage.setItem("token", token);
+            localStorage.setItem("user_email", email);
+            
+            window.location.href = "dashboard.html";
+        }
+        
+        // Redirect if already authenticated
+        if (localStorage.getItem("token")) {
+            window.location.href = "dashboard.html";
+        }
+    </script>
+</body>
+</html>

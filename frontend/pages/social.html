@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Impact Metrics - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <!-- Controls row -->
+                <div class="controls-row">
+                    <div style="display: flex; gap: 12px; flex-grow: 1;">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="search-box" class="search-control" placeholder="Search description..." oninput="handleSearch()">
+                        </div>
+                        <select id="filter-type" class="filter-select" onchange="handleFilter()">
+                            <option value="">All Categories</option>
+                            <option value="training_hours">Training Hours</option>
+                            <option value="health_safety_incidents">Health & Safety Incidents</option>
+                            <option value="diversity_ratio">Diversity Ratio (%)</option>
+                            <option value="community_hours">Community Service Hours</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="openAddModal()">
+                        <i class="fas fa-plus"></i> Record Social Metric
+                    </button>
+                </div>
+
+                <!-- Social Table -->
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Recorded Date</th>
+                                <th>Category</th>
+                                <th>Value</th>
+                                <th>Description</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="social-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">Loading social impact records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination footer -->
+                <div class="pagination-footer">
+                    <div style="font-size: 14px; color: var(--text-secondary);" id="pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <div class="pagination-buttons">
+                        <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+                        <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-box">
+            <div class="modal-title">Record Social Metric</div>
+            <form id="add-form" onsubmit="handleCreateSubmit(event)">
+                <div class="form-group">
+                    <label for="metric-type">Category</label>
+                    <select id="metric-type" class="form-control" required>
+                        <option value="">Select category...</option>
+                        <option value="training_hours">Employee Training Hours</option>
+                        <option value="health_safety_incidents">Health & Safety Incidents</option>
+                        <option value="diversity_ratio">Employee Diversity Ratio (%)</option>
+                        <option value="community_hours">Community Engagement Hours</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="metric-value">Value</label>
+                    <input type="number" step="any" id="metric-value" class="form-control" placeholder="e.g. 40, 2, 85" required>
+                </div>
+                <div class="form-group">
+                    <label for="metric-date">Recorded Date</label>
+                    <input type="date" id="metric-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="metric-desc">Description</label>
+                    <textarea id="metric-desc" class="form-control" rows="3" placeholder="Describe social initiative..."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        let currentPage = 1;
+        let currentLimit = 10;
+        let searchQuery = "";
+        let filterType = "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("metric-date").value = new Date().toISOString().split('T')[0];
+            loadSocialRecords();
+        });
+
+        async function loadSocialRecords() {
+            try {
+                let endpoint = `/social?page=${currentPage}&limit=${currentLimit}`;
+                if (filterType) {
+                    endpoint += `&metric_type=${filterType}`;
+                }
+                if (searchQuery) {
+                    endpoint += `&search=${encodeURIComponent(searchQuery)}`;
+                }
+                
+                const res = await apiCall(endpoint);
+                if (res && res.success) {
+                    populateTable(res.data);
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to load social records.", "error");
+            }
+        }
+
+        function populateTable(data) {
+            const tbody = document.getElementById("social-tbody");
+            tbody.innerHTML = "";
+            
+            if (data.items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No records found.</td></tr>`;
+                document.getElementById("pagination-info").textContent = "Showing 0 to 0 of 0 entries";
+                document.getElementById("prev-btn").disabled = true;
+                document.getElementById("next-btn").disabled = true;
+                return;
+            }
+
+            data.items.forEach(rec => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${rec.recorded_date}</td>
+                    <td><span style="font-weight: 600;">${formatCategory(rec.metric_type)}</span></td>
+                    <td style="font-weight: 600; color: var(--primary-color);">${rec.value}</td>
+                    <td style="color: var(--text-secondary);">${rec.description || "—"}</td>
+                    <td style="text-align: right;">
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="deleteRecord('${rec.id}')">
+                            <i class="fas fa-trash-alt" style="color: var(--error-color);"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const start = (data.page - 1) * data.limit + 1;
+            const end = Math.min(start + data.items.length - 1, data.total);
+            document.getElementById("pagination-info").textContent = `Showing ${start} to ${end} of ${data.total} entries`;
+            
+            document.getElementById("prev-btn").disabled = data.page <= 1;
+            document.getElementById("next-btn").disabled = data.page >= data.pages;
+        }
+
+        function formatCategory(type) {
+            if (type === "training_hours") return "Training Hours";
+            if (type === "health_safety_incidents") return "Health & Safety Incidents";
+            if (type === "diversity_ratio") return "Diversity Ratio (%)";
+            if (type === "community_hours") return "Community Service Hours";
+            return type;
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById("search-box").value.trim();
+            currentPage = 1;
+            loadSocialRecords();
+        }
+
+        function handleFilter() {
+            filterType = document.getElementById("filter-type").value;
+            currentPage = 1;
+            loadSocialRecords();
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadSocialRecords();
+        }
+
+        function openAddModal() {
+            document.getElementById("add-modal").classList.add("active");
+        }
+
+        function closeAddModal() {
+            document.getElementById("add-modal").classList.remove("active");
+            document.getElementById("add-form").reset();
+            document.getElementById("metric-date").value = new Date().toISOString().split('T')[0];
+        }
+
+        async function handleCreateSubmit(event) {
+            event.preventDefault();
+            const metric_type = document.getElementById("metric-type").value;
+            const value = parseFloat(document.getElementById("metric-value").value);
+            const recorded_date = document.getElementById("metric-date").value;
+            const description = document.getElementById("metric-desc").value.trim();
+            
+            let user_id = "00000000-0000-0000-0000-000000000000";
+            try {
+                const empRes = await apiCall("/employees?limit=1");
+                if (empRes && empRes.success && empRes.data.items.length > 0) {
+                    user_id = empRes.data.items[0].id;
+                }
+            } catch (e) {}
+
+            try {
+                const res = await apiCall("/social", {
+                    method: "POST",
+                    body: JSON.stringify({ user_id, metric_type, value, recorded_date, description })
+                });
+                if (res && res.success) {
+                    showToast("Social impact record logged successfully!");
+                    closeAddModal();
+                    loadSocialRecords();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to log social record.", "error");
+            }
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm("Are you sure you want to delete this record?")) return;
+            try {
+                const res = await apiCall(`/social/${id}`, {
+                    method: "DELETE"
+                });
+                if (res && res.success) {
+                    showToast("Record deleted successfully!");
+                    loadSocialRecords();
+                }
+            } catch (err) {
+                showToast(err.message || "Failed to delete record.", "error");
+            }
+        }
+    </script>
+</body>
+</html>

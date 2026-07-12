@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EcoSphere AI</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ChartJS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-wrapper">
+            <div id="navbar-container"></div>
+            
+            <div class="content-body">
+                <!-- Metrics Grid -->
+                <div class="grid-container">
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <h3>Total Departments</h3>
+                            <p id="stat-departments">...</p>
+                        </div>
+                        <div class="stats-icon"><i class="fas fa-sitemap"></i></div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <h3>Total Employees</h3>
+                            <p id="stat-employees">...</p>
+                        </div>
+                        <div class="stats-icon"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <h3>Carbon Footprint</h3>
+                            <p id="stat-carbon">...</p>
+                        </div>
+                        <div class="stats-icon" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444;"><i class="fas fa-smog"></i></div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <h3>Gamification Leaders</h3>
+                            <p id="stat-points">...</p>
+                        </div>
+                        <div class="stats-icon" style="background-color: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-trophy"></i></div>
+                    </div>
+                </div>
+
+                <!-- Charts Panels Grid -->
+                <div class="panels-grid">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Environmental Trends (Carbon footprint)</div>
+                        </div>
+                        <div style="position: relative; height: 320px; width: 100%;">
+                            <canvas id="carbonTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">ESG Score Breakdown</div>
+                        </div>
+                        <div style="position: relative; height: 320px; width: 100%; display: flex; justify-content: center;">
+                            <canvas id="esgRadarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel" style="margin-bottom: 32px;">
+                    <div class="panel-header">
+                        <div class="panel-title">Employee Distribution per Department</div>
+                    </div>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="deptDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDashboardStats();
+        });
+
+        async function loadDashboardStats() {
+            // Default demo fallback values
+            let orgStats = {
+                total_departments: 5,
+                total_employees: 32,
+                active_employees: 30,
+                department_breakdown: [
+                    { department_name: "Engineering", employee_count: 12 },
+                    { department_name: "Operations", employee_count: 8 },
+                    { department_name: "Sustainability", employee_count: 4 },
+                    { department_name: "Governance & Legal", employee_count: 5 },
+                    { department_name: "Human Resources", employee_count: 3 }
+                ]
+            };
+            
+            let esgStats = {
+                environmental: { carbon: 4200, energy: 12500, water: 8400, waste: 2100 },
+                social: { training_hours: 480, health_safety_incidents: 0, community_hours: 150 },
+                governance: { whistleblower_reports: 2, policy_violations: 0 }
+            };
+
+            // Attempt to load live data from API
+            try {
+                const orgRes = await apiCall("/organization/stats");
+                if (orgRes && orgRes.success) {
+                    orgStats = orgRes.data;
+                }
+            } catch (err) {
+                console.warn("Using mock organization stats due to connection error.");
+            }
+
+            try {
+                const esgRes = await apiCall("/reports/dynamic");
+                if (esgRes && esgRes.success) {
+                    esgStats = esgRes.data;
+                }
+            } catch (err) {
+                console.warn("Using mock ESG stats due to connection error.");
+            }
+
+            // Populate text elements
+            document.getElementById("stat-departments").textContent = orgStats.total_departments;
+            document.getElementById("stat-employees").textContent = orgStats.total_employees;
+            document.getElementById("stat-carbon").textContent = `${esgStats.environmental.carbon || 4200} kg`;
+            document.getElementById("stat-points").textContent = `${esgStats.social.training_hours || 480} Hrs`;
+
+            // Draw Charts
+            renderCharts(orgStats, esgStats);
+        }
+
+        function renderCharts(orgStats, esgStats) {
+            // Line Chart: Carbon Emissions Trend
+            const lineCtx = document.getElementById('carbonTrendChart').getContext('2d');
+            new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Carbon footprint (kgCO2e)',
+                        data: [780, 810, 720, 640, 580, 520],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                    }
+                }
+            });
+
+            // Radar Chart: ESG Scores
+            const radarCtx = document.getElementById('esgRadarChart').getContext('2d');
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Resource Conservation', 'Carbon Abatement', 'Health & Safety', 'Community Impact', 'Policy Compliance', 'Diversity'],
+                    datasets: [{
+                        label: 'Organization score',
+                        data: [85, 78, 90, 80, 95, 88],
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: '#10b981',
+                        pointBackgroundColor: '#10b981',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            angleLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                            pointLabels: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+
+            // Bar Chart: Employees per Department
+            const barCtx = document.getElementById('deptDistributionChart').getContext('2d');
+            const deptLabels = orgStats.department_breakdown.map(d => d.department_name);
+            const deptData = orgStats.department_breakdown.map(d => d.employee_count);
+
+            new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        label: 'Employee Count',
+                        data: deptData,
+                        backgroundColor: '#34d399',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
