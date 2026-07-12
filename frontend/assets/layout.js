@@ -1,34 +1,18 @@
 const API_BASE_URL = localStorage.getItem("api_base_url") || "http://localhost:8000/api/v1";
 
-// Helper to make API calls
-async function apiCall(endpoint, options = {}) {
-    const token = localStorage.getItem("token");
-    const headers = {
-        "Content-Type": "application/json",
-        ...options.headers,
-    };
-    if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            headers,
-        });
-        const json = await response.json();
-        if (!response.ok) {
-            throw new Error(json.message || "An error occurred");
-        }
-        return json;
-    } catch (err) {
-        console.error("API Call Error:", err);
-        throw err;
-    }
-}
+// Toast deduplication state
+let lastToastText = "";
+let lastToastTime = 0;
 
 // Show Alert Toasts
 function showToast(message, type = "success") {
+    const now = Date.now();
+    if (message === lastToastText && now - lastToastTime < 1000) {
+        return; // Suppress duplicate alerts in rapid succession
+    }
+    lastToastText = message;
+    lastToastTime = now;
+
     const container = document.getElementById("toast-container") || createToastContainer();
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
@@ -37,6 +21,9 @@ function showToast(message, type = "success") {
     if (type === "error") {
         icon = "fa-exclamation-circle";
         color = "#ef4444";
+    } else if (type === "warning") {
+        icon = "fa-exclamation-triangle";
+        color = "#f59e0b";
     }
     toast.innerHTML = `<i class="fas ${icon}" style="color: ${color}"></i> <span>${message}</span>`;
     container.appendChild(toast);
@@ -51,6 +38,83 @@ function createToastContainer() {
     el.className = "toast-container";
     document.body.appendChild(el);
     return el;
+}
+
+// Centralized API Helper
+async function apiCall(endpoint, options = {}) {
+    const token = localStorage.getItem("token");
+    const headers = {
+        "Content-Type": "application/json",
+        ...options.headers,
+    };
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+    
+    // Auto-inject Loading Spinner on lists
+    const tbodyIds = ["departments-tbody", "employees-tbody", "metrics-tbody", "social-tbody", "governance-tbody", "reports-tbody", "leaderboard-tbody"];
+    let activeTbody = null;
+    if (!options.method || options.method === "GET") {
+        for (const id of tbodyIds) {
+            const el = document.getElementById(id);
+            if (el) {
+                activeTbody = el;
+                break;
+            }
+        }
+    }
+
+    if (activeTbody) {
+        activeTbody.innerHTML = `
+            <tr>
+                <td colspan="100%" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 26px; color: var(--primary-color); margin-bottom: 12px;"></i>
+                    <div style="font-weight: 500; font-size: 14px;">Retrieving latest indicators...</div>
+                </td>
+            </tr>
+        `;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+        
+        const json = await response.json();
+        
+        if (!response.ok) {
+            const errorMsg = json.message || (json.errors && json.errors.join(", ")) || "An API transaction failure occurred.";
+            throw new Error(errorMsg);
+        }
+        
+        // Success Toast trigger for mutations
+        if (options.method && options.method !== "GET") {
+            let actionWord = "completed";
+            if (options.method === "POST") actionWord = "created";
+            if (options.method === "PUT") actionWord = "updated";
+            if (options.method === "DELETE") actionWord = "deleted";
+            showToast(`Record successfully ${actionWord}!`, "success");
+        }
+
+        return json;
+    } catch (err) {
+        showToast(err.message || "A network or server connection error occurred.", "error");
+        
+        // Put error message inside table body for context if query fails
+        if (activeTbody) {
+            activeTbody.innerHTML = `
+                <tr>
+                    <td colspan="100%" style="text-align: center; padding: 32px; color: var(--error-color);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 12px;"></i>
+                        <div style="font-weight: 600;">Failed to Load Dataset</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${err.message}</div>
+                    </td>
+                </tr>
+            `;
+        }
+        throw err;
+    }
 }
 
 // Shared layouts injection
