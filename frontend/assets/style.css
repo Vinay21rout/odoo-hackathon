@@ -439,14 +439,15 @@ body {
         grid-template-columns: 1fr;
     }
 }
+.glass-panel{
+background:rgba(255,255,255,.82);
+backdrop-filter:blur(20px);
+-webkit-backdrop-filter:blur(20px);
 
-.glass-panel {
-    background-color: var(--surface-color) !important;
-    border: 1px solid var(--surface-border) !important;
-    border-radius: var(--border-radius);
-    padding: 26px;
-    transition: var(--transition);
-    box-shadow: var(--box-shadow) !important;
+border:1px solid rgba(255,255,255,.25);
+
+box-shadow:
+0 8px 32px rgba(0,0,0,.08);
 }
 
 .glass-panel:hover {
