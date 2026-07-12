@@ -1,0 +1,36 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+
+# Environment configurations
+.env
+backend/.env
+
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node/npm dependency directories (Frontend)
+node_modules/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE and editors settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Hackathon / local agents logs (if any)
+.agents/
+.system_generated/
