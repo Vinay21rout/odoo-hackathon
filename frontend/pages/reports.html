@@ -122,6 +122,27 @@
                     </div>
                 </div>
 
+                <!-- AI Report Narrative Generator Section -->
+                <div class="glass-panel" style="margin-bottom: 32px;">
+                    <div class="panel-header">
+                        <h3 class="panel-title"><i class="fas fa-magic" style="color: var(--warning-color);"></i> AI Report Narrative Auditor</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="ai-report-type" class="filter-select" style="padding: 6px 12px; font-size: 13px;">
+                                <option value="full">Full ESG Analysis</option>
+                                <option value="environmental">Environmental Column</option>
+                                <option value="social">Social Responsibility</option>
+                                <option value="governance">Governance Compliance</option>
+                            </select>
+                            <button class="btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="triggerAiReport()">
+                                <i class="fas fa-brain"></i> Analyze with AI
+                            </button>
+                        </div>
+                    </div>
+                    <div id="ai-report-display" style="margin-top: 16px; min-height: 120px; padding: 20px; background: rgba(0,0,0,0.15); border-radius: var(--border-radius); border: 1px solid var(--surface-border); max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: var(--text-secondary);">
+Select a report scope and click "Analyze with AI" to generate a narrative audit report based on live system metrics.
+                    </div>
+                </div>
+
                 <!-- Saved Reports Section -->
                 <div class="panel-header" style="margin-bottom: 20px;">
                     <h3 class="panel-title">Saved Audit History Snapshots</h3>
@@ -291,7 +312,6 @@
             } catch (e) {}
 
             try {
-                // Backend requires payload match ReportCreate
                 const res = await apiCall("/reports", {
                     method: "POST",
                     body: JSON.stringify({ user_id, title, report_type, content: { summary } })
@@ -318,6 +338,30 @@
                 }
             } catch (err) {
                 showToast(err.message || "Failed to delete snapshot.", "error");
+            }
+        }
+
+        async function triggerAiReport() {
+            const type = document.getElementById("ai-report-type").value;
+            const display = document.getElementById("ai-report-display");
+            
+            display.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 26px; color: var(--primary-color); margin-bottom: 12px;"></i>
+                    <div style="font-weight: 500;">AI Sustainability Auditor compiling indicators...</div>
+                </div>
+            `;
+            
+            try {
+                const res = await apiCall("/ai/report", {
+                    method: "POST",
+                    body: JSON.stringify({ report_type: type, timeframe: "Q3" })
+                });
+                if (res && res.success) {
+                    display.textContent = res.data.narrative;
+                }
+            } catch (err) {
+                display.innerHTML = `<span style="color: var(--error-color);">Error generating narrative report.</span>`;
             }
         }
     </script>
